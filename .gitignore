@@ -1,0 +1,10 @@
+node_modules/
+client/node_modules/
+server/node_modules/
+.env
+server/data/
+server/uploads/generated/
+server/uploads/references/
+client/dist/
+*.local
+.DS_Store
