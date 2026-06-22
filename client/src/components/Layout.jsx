@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, BookImage, Wand2, Star } from 'lucide-react';
+import { LayoutDashboard, BookImage, Star } from 'lucide-react';
 import './Layout.css';
 
 const navItems = [
@@ -13,12 +13,9 @@ export default function Layout({ children }) {
     <div className="layout">
       <aside className="sidebar">
         <div className="sidebar-logo">
-          <span className="logo-icon">
-            <Wand2 size={22} color="#39ff14" />
-          </span>
-          <div>
-            <div className="logo-name">Monsta</div>
-            <div className="logo-sub">Sketch Pad</div>
+          <div className="logo-wordmark">
+            <span className="logo-monsta">MONSTA</span>
+            <span className="logo-md">Media &amp; Design</span>
           </div>
         </div>
 

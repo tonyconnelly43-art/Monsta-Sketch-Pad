@@ -19,37 +19,34 @@
 .sidebar-logo {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 24px 20px;
+  justify-content: center;
+  padding: 20px 16px;
   border-bottom: 1px solid #1e1e1e;
 }
 
-.logo-icon {
-  width: 40px;
-  height: 40px;
-  background: rgba(57, 255, 20, 0.1);
-  border: 1px solid rgba(57, 255, 20, 0.3);
-  border-radius: 10px;
+.logo-wordmark {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.logo-name {
-  font-size: 18px;
-  font-weight: 800;
-  color: #39ff14;
-  letter-spacing: -0.02em;
   line-height: 1;
 }
 
-.logo-sub {
-  font-size: 11px;
-  color: #666;
-  font-weight: 500;
-  letter-spacing: 0.05em;
+.logo-monsta {
+  font-size: 26px;
+  font-weight: 900;
+  color: #cc1a1a;
+  letter-spacing: 0.04em;
+  text-shadow: 2px 2px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000;
+  font-family: 'Arial Black', 'Impact', system-ui, sans-serif;
+}
+
+.logo-md {
+  font-size: 9px;
+  color: #f0f0f0;
+  font-weight: 700;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
+  margin-top: 2px;
 }
 
 .sidebar-nav {

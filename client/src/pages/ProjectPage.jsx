@@ -1,40 +1,136 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Type, User, ImageIcon, Layers, Star, Edit3, Check, X } from 'lucide-react';
+import {
+  ArrowLeft, Wand2, Star, Download, CheckCircle,
+  ChevronDown, BookImage, X, Edit3, Check, RefreshCw
+} from 'lucide-react';
 import { api } from '../utils/api';
 import { useToast } from '../context/ToastContext';
 
-const STAGES = [
-  { key: 'wordmark', label: 'Wordmark', icon: Type, path: 'wordmarks', desc: 'Text-based logo for the company name' },
-  { key: 'mascot', label: 'Mascot', icon: User, path: 'mascots', desc: 'Brand character representing the company' },
-  { key: 'background', label: 'Background', icon: ImageIcon, path: 'backgrounds', desc: 'Brand backdrop for marketing materials' },
-  { key: 'fullBrand', label: 'Full Brand', icon: Layers, path: 'full-brand', desc: 'Complete brand composition' },
+const GEN_TYPES = [
+  { value: 'mascot',     label: 'Mascot',     refCategory: 'mascot',     projectKey: 'mascots',     favoriteKey: 'favoriteMascot' },
+  { value: 'wordmark',   label: 'Wordmark',   refCategory: 'wordmark',   projectKey: 'wordmarks',   favoriteKey: 'favoriteWordmark' },
+  { value: 'badge',      label: 'Badge',      refCategory: 'badge',      projectKey: 'badges',      favoriteKey: 'favoriteBadge' },
+  { value: 'background', label: 'Background', refCategory: 'background', projectKey: 'backgrounds', favoriteKey: 'favoriteBackground' },
 ];
+
+const FAVORITE_PANELS = [
+  { key: 'favoriteWordmark',   label: 'Wordmark' },
+  { key: 'favoriteMascot',     label: 'Mascot' },
+  { key: 'favoriteBackground', label: 'Background' },
+];
+
+async function runGenerate(type, project, refs) {
+  switch (type) {
+    case 'mascot':     return api.generateMascots(project, refs);
+    case 'wordmark':   return api.generateWordmarks(project, refs);
+    case 'badge':      return api.generateBadges(project, refs);
+    case 'background': return api.generateBackgrounds(project, refs);
+    default: throw new Error('Unknown type');
+  }
+}
 
 export default function ProjectPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
+
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState({});
 
+  const [selectedType, setSelectedType] = useState('mascot');
+  const [showTypeMenu, setShowTypeMenu] = useState(false);
+  const [showRefs, setShowRefs] = useState(false);
+  const [allRefs, setAllRefs] = useState({});
+  const [selectedRefs, setSelectedRefs] = useState([]);
+  const [images, setImages] = useState([]);
+  const [generating, setGenerating] = useState(false);
+
+  useEffect(() => { loadProject(); }, [id]);
+
   useEffect(() => {
-    loadProject();
-  }, [id]);
+    if (selectedType) loadRefs(selectedType);
+    setSelectedRefs([]);
+  }, [selectedType]);
 
   async function loadProject() {
     try {
       const data = await api.getProject(id);
       setProject(data);
       setEditForm(data);
+      setImages(data['mascots'] || []);
     } catch {
       toast('Project not found', 'error');
       navigate('/');
     } finally {
       setLoading(false);
     }
+  }
+
+  async function loadRefs(type) {
+    if (allRefs[type]) return;
+    try {
+      const cfg = GEN_TYPES.find(t => t.value === type);
+      const refs = await api.getReferences(cfg.refCategory);
+      setAllRefs(r => ({ ...r, [type]: refs }));
+    } catch {}
+  }
+
+  function selectType(type) {
+    setSelectedType(type);
+    setShowTypeMenu(false);
+    const cfg = GEN_TYPES.find(t => t.value === type);
+    setImages(project?.[cfg.projectKey] || []);
+    loadRefs(type);
+  }
+
+  async function generate() {
+    if (!project) return;
+    setGenerating(true);
+    try {
+      const cfg = GEN_TYPES.find(t => t.value === selectedType);
+      const refData = (selectedRefs || [])
+        .map(rid => (allRefs[selectedType] || []).find(r => r.id === rid))
+        .filter(Boolean);
+      const result = await runGenerate(selectedType, project, refData);
+      const newImages = [...images, ...result.images];
+      setImages(newImages);
+      const updated = await api.updateProject(id, { [cfg.projectKey]: newImages });
+      setProject(updated);
+      toast(`Generated ${result.images.length} ${cfg.label} options!`);
+    } catch (e) {
+      toast(e.message || 'Generation failed', 'error');
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  async function setFavorite(image) {
+    const cfg = GEN_TYPES.find(t => t.value === selectedType);
+    try {
+      const updated = await api.updateProject(id, { [cfg.favoriteKey]: image });
+      setProject(updated);
+      toast(`${cfg.label} saved as favorite!`);
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+  }
+
+  function toggleRef(refId) {
+    setSelectedRefs(s =>
+      s.includes(refId) ? s.filter(r => r !== refId) : s.length < 3 ? [...s, refId] : s
+    );
+  }
+
+  function downloadImage(url, type) {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `monsta-${type}-${Date.now()}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   }
 
   async function saveEdit() {
@@ -56,18 +152,20 @@ export default function ProjectPage() {
 
   if (!project) return null;
 
-  const canGenerateFull = project.favoriteWordmark && project.favoriteMascot && project.favoriteBackground;
+  const cfg = GEN_TYPES.find(t => t.value === selectedType);
+  const currentFav = project[cfg.favoriteKey];
+  const refs = allRefs[selectedType] || [];
 
   return (
-    <div>
+    <div style={{ maxWidth: 1200 }}>
       <Link to="/" className="back-link"><ArrowLeft size={16} /> All Projects</Link>
 
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
         <div>
-          <h1>{project.businessName}</h1>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}>
+          <h1 style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.02em' }}>{project.businessName}</h1>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 6 }}>
             <span className="badge badge-neon">{project.industry}</span>
-            {project.location && <span style={{ color: 'var(--text-muted)', fontSize: 14 }}>📍 {project.location}</span>}
+            {project.location && <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>📍 {project.location}</span>}
           </div>
         </div>
         <button className="btn btn-ghost btn-sm" onClick={() => setEditing(!editing)}>
@@ -76,20 +174,16 @@ export default function ProjectPage() {
       </div>
 
       {editing && (
-        <div className="card" style={{ marginBottom: 32 }}>
-          <h3 style={{ marginBottom: 20, fontSize: 16, fontWeight: 600 }}>Edit Project Details</h3>
+        <div className="card" style={{ marginBottom: 24 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             {['businessName', 'industry', 'location', 'personality', 'colors', 'styleNotes'].map(key => (
-              <div className="form-group" key={key}>
+              <div className="form-group" key={key} style={{ marginBottom: 12 }}>
                 <label>{key.replace(/([A-Z])/g, ' $1').trim()}</label>
-                <input
-                  value={editForm[key] || ''}
-                  onChange={e => setEditForm(f => ({ ...f, [key]: e.target.value }))}
-                />
+                <input value={editForm[key] || ''} onChange={e => setEditForm(f => ({ ...f, [key]: e.target.value }))} />
               </div>
             ))}
             {['promptDescription', 'mustHave', 'mustAvoid'].map(key => (
-              <div className="form-group" key={key} style={{ gridColumn: key === 'promptDescription' ? '1 / -1' : 'auto' }}>
+              <div className="form-group" key={key} style={{ gridColumn: key === 'promptDescription' ? '1 / -1' : 'auto', marginBottom: 12 }}>
                 <label>{key.replace(/([A-Z])/g, ' $1').trim()}</label>
                 {key === 'promptDescription'
                   ? <textarea value={editForm[key] || ''} onChange={e => setEditForm(f => ({ ...f, [key]: e.target.value }))} />
@@ -105,103 +199,204 @@ export default function ProjectPage() {
         </div>
       )}
 
-      {/* Project Info Summary */}
-      {!editing && (project.personality || project.colors || project.styleNotes || project.promptDescription) && (
-        <div className="card" style={{ marginBottom: 32, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
-          {project.personality && <Detail label="Personality" value={project.personality} />}
-          {project.colors && <Detail label="Colors" value={project.colors} />}
-          {project.styleNotes && <Detail label="Style" value={project.styleNotes} />}
-          {project.promptDescription && <Detail label="Description" value={project.promptDescription} style={{ gridColumn: '1 / -1' }} />}
-          {project.mustHave && <Detail label="Must Include" value={project.mustHave} />}
-          {project.mustAvoid && <Detail label="Must Avoid" value={project.mustAvoid} />}
+      {/* Studio controls */}
+      <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
+        <div style={{ position: 'relative' }}>
+          <button
+            className="btn btn-ghost"
+            onClick={() => setShowTypeMenu(m => !m)}
+            style={{ minWidth: 180, justifyContent: 'space-between' }}
+          >
+            <span style={{ fontWeight: 700 }}>Generate: {cfg.label}</span>
+            <ChevronDown size={16} />
+          </button>
+          {showTypeMenu && (
+            <div style={{
+              position: 'absolute', top: '100%', left: 0, marginTop: 4, zIndex: 50,
+              background: '#1a1a1a', border: '1px solid #333', borderRadius: 10,
+              overflow: 'hidden', minWidth: 180, boxShadow: '0 8px 30px rgba(0,0,0,0.5)'
+            }}>
+              {GEN_TYPES.map(t => (
+                <button
+                  key={t.value}
+                  onClick={() => selectType(t.value)}
+                  style={{
+                    display: 'block', width: '100%', textAlign: 'left',
+                    padding: '11px 16px',
+                    background: t.value === selectedType ? 'rgba(57,255,20,0.08)' : 'transparent',
+                    color: t.value === selectedType ? 'var(--neon)' : 'var(--text)',
+                    fontSize: 14, fontWeight: 600, border: 'none', cursor: 'pointer'
+                  }}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <button
+          className={`btn ${showRefs ? 'btn-outline' : 'btn-ghost'}`}
+          onClick={() => setShowRefs(s => !s)}
+        >
+          <BookImage size={16} />
+          References
+          {selectedRefs.length > 0 && (
+            <span className="badge badge-neon" style={{ marginLeft: 2 }}>{selectedRefs.length}</span>
+          )}
+        </button>
+
+        <button className="btn btn-primary btn-lg" onClick={generate} disabled={generating}>
+          {generating
+            ? <><span className="loading-spinner" style={{ width: 18, height: 18 }} /> Generating...</>
+            : <><Wand2 size={18} /> Generate 4 Options</>
+          }
+        </button>
+
+        {images.length > 0 && !generating && (
+          <button className="btn btn-ghost btn-sm" onClick={generate} disabled={generating}>
+            <RefreshCw size={14} /> 4 More
+          </button>
+        )}
+      </div>
+
+      {/* Reference picker */}
+      {showRefs && (
+        <div className="card" style={{ marginBottom: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 700 }}>
+              {cfg.label} References
+              <span style={{ color: 'var(--text-muted)', fontWeight: 400, marginLeft: 8, fontSize: 12 }}>(select up to 3)</span>
+            </h3>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <Link to="/library" style={{ fontSize: 13, color: 'var(--neon)' }}>+ Upload</Link>
+              <button className="btn btn-ghost btn-xs" onClick={() => setShowRefs(false)}><X size={12} /></button>
+            </div>
+          </div>
+          {refs.length === 0 ? (
+            <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
+              No {cfg.label.toLowerCase()} references yet. <Link to="/library">Upload some in the Reference Library.</Link>
+            </p>
+          ) : (
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              {refs.map(ref => (
+                <div
+                  key={ref.id}
+                  onClick={() => toggleRef(ref.id)}
+                  style={{
+                    cursor: 'pointer', borderRadius: 10, overflow: 'hidden', width: 120,
+                    border: `2px solid ${selectedRefs.includes(ref.id) ? 'var(--neon)' : '#2a2a2a'}`,
+                    boxShadow: selectedRefs.includes(ref.id) ? '0 0 15px var(--neon-glow)' : 'none',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  <img src={ref.url} alt={ref.name} style={{ width: 120, height: 120, objectFit: 'cover', display: 'block' }} />
+                  <div style={{ padding: '5px 8px', background: '#1a1a1a' }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: selectedRefs.includes(ref.id) ? 'var(--neon)' : 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ref.name}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      {/* Brand Generation Stages */}
-      <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 20 }}>Brand Generation Workflow</h2>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16, marginBottom: 40 }}>
-        {STAGES.map(stage => {
-          const favoriteKey = `favorite${stage.key.charAt(0).toUpperCase() + stage.key.slice(1)}`;
-          const hasFavorite = project[favoriteKey];
-          const isFullBrand = stage.key === 'fullBrand';
-          const locked = isFullBrand && !canGenerateFull;
-          const Icon = stage.icon;
+      {/* Main generation window */}
+      <div className="card" style={{ marginBottom: 20, minHeight: 420, padding: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <h2 style={{ fontSize: 15, fontWeight: 700 }}>
+            {images.length > 0
+              ? `${images.length} ${cfg.label} Option${images.length !== 1 ? 's' : ''}`
+              : `${cfg.label} Generation`}
+          </h2>
+          {currentFav && <span className="badge badge-neon"><Star size={10} /> Favorite Selected</span>}
+        </div>
 
-          return (
-            <div
-              key={stage.key}
-              className="card card-hover"
-              style={{
-                opacity: locked ? 0.5 : 1,
-                borderColor: hasFavorite ? 'rgba(57,255,20,0.3)' : undefined,
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-                <div style={{ background: hasFavorite ? 'rgba(57,255,20,0.1)' : '#1a1a1a', border: `1px solid ${hasFavorite ? 'rgba(57,255,20,0.3)' : '#2a2a2a'}`, borderRadius: 8, width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon size={18} color={hasFavorite ? 'var(--neon)' : '#666'} />
+        {images.length === 0 && !generating ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 300, color: 'var(--text-muted)', gap: 12 }}>
+            <Wand2 size={48} style={{ opacity: 0.15 }} />
+            <p style={{ fontSize: 14 }}>Select a type above and click Generate</p>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 14 }}>
+            {images.map(img => {
+              const isFav = currentFav?.id === img.id;
+              return (
+                <div key={img.id} style={{
+                  borderRadius: 10, overflow: 'hidden', position: 'relative',
+                  border: `2px solid ${isFav ? 'var(--neon)' : '#2a2a2a'}`,
+                  boxShadow: isFav ? '0 0 18px var(--neon-glow)' : 'none',
+                  transition: 'all 0.2s',
+                }}>
+                  <img src={img.url} alt="" style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block' }} />
+                  {isFav && (
+                    <div style={{ position: 'absolute', top: 8, right: 8, background: 'var(--neon)', borderRadius: 20, padding: '2px 8px', fontSize: 10, fontWeight: 800, color: '#000', display: 'flex', alignItems: 'center', gap: 3 }}>
+                      <Star size={9} fill="#000" /> FAV
+                    </div>
+                  )}
+                  <div style={{ padding: '8px 10px', display: 'flex', gap: 6, background: '#111' }}>
+                    <button
+                      className={`btn ${isFav ? 'btn-primary' : 'btn-outline'} btn-xs`}
+                      style={{ flex: 1, justifyContent: 'center' }}
+                      onClick={() => setFavorite(img)}
+                    >
+                      {isFav ? <><CheckCircle size={11} /> Saved</> : <><Star size={11} /> Favorite</>}
+                    </button>
+                    <button className="btn btn-ghost btn-xs" onClick={() => downloadImage(img.url, selectedType)}>
+                      <Download size={11} />
+                    </button>
+                  </div>
                 </div>
-                {hasFavorite && <span className="badge badge-neon"><Star size={10} /> Selected</span>}
+              );
+            })}
+
+            {generating && Array(4).fill(null).map((_, i) => (
+              <div key={`loading-${i}`} style={{
+                borderRadius: 10, border: '2px solid #222', background: '#111',
+                aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexDirection: 'column', gap: 10, minHeight: 220,
+              }}>
+                <span className="loading-spinner" style={{ width: 28, height: 28 }} />
+                <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>Generating...</span>
               </div>
-              <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>{stage.label}</h3>
-              <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 16 }}>{stage.desc}</p>
+            ))}
+          </div>
+        )}
+      </div>
 
-              {hasFavorite && (
-                <div style={{ marginBottom: 12, borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(57,255,20,0.2)' }}>
-                  <img src={hasFavorite.url} alt="Favorite" style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block' }} />
-                </div>
-              )}
-
-              {locked ? (
-                <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Select a wordmark, mascot & background first</p>
+      {/* Favorite panels */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
+        {FAVORITE_PANELS.map(panel => {
+          const fav = project[panel.key];
+          return (
+            <div key={panel.key} className="card" style={{
+              padding: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
+              borderColor: fav ? 'rgba(57,255,20,0.25)' : undefined, minHeight: 180,
+            }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                {panel.label}
+              </div>
+              {fav ? (
+                <>
+                  <div style={{ borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(57,255,20,0.3)', width: '100%' }}>
+                    <img src={fav.url} alt={panel.label} style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block' }} />
+                  </div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <span className="badge badge-neon" style={{ fontSize: 10 }}><Star size={9} /> Favorite</span>
+                    <button className="btn btn-ghost btn-xs" onClick={() => downloadImage(fav.url, panel.key)}>
+                      <Download size={11} />
+                    </button>
+                  </div>
+                </>
               ) : (
-                <Link
-                  to={`/project/${id}/${stage.path}`}
-                  className="btn btn-outline btn-sm"
-                  style={{ width: '100%', justifyContent: 'center' }}
-                >
-                  {hasFavorite ? 'Regenerate' : isFullBrand ? 'Generate Full Brand' : `Generate ${stage.label}s`}
-                </Link>
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', border: '1px dashed #2a2a2a', borderRadius: 8, color: 'var(--text-muted)', fontSize: 12 }}>
+                  Not selected
+                </div>
               )}
             </div>
           );
         })}
       </div>
-
-      {/* Saved Images Preview */}
-      {(project.wordmarks?.length > 0 || project.mascots?.length > 0 || project.backgrounds?.length > 0 || project.fullBrands?.length > 0) && (
-        <div>
-          <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 20 }}>Generated Images</h2>
-          {[
-            { key: 'wordmarks', label: 'Wordmarks', path: 'wordmarks' },
-            { key: 'mascots', label: 'Mascots', path: 'mascots' },
-            { key: 'backgrounds', label: 'Backgrounds', path: 'backgrounds' },
-            { key: 'fullBrands', label: 'Full Brand Concepts', path: 'full-brand' },
-          ].map(section => project[section.key]?.length > 0 && (
-            <div key={section.key} style={{ marginBottom: 28 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <h3 style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-muted)' }}>{section.label}</h3>
-                <Link to={`/project/${id}/${section.path}`} style={{ fontSize: 13, color: 'var(--neon)' }}>View all →</Link>
-              </div>
-              <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8 }}>
-                {project[section.key].slice(-4).map(img => (
-                  <div key={img.id} style={{ flex: '0 0 140px', borderRadius: 8, overflow: 'hidden', border: `2px solid ${project[`favorite${section.key.slice(0, -1).charAt(0).toUpperCase() + section.key.slice(0, -1).slice(1)}`]?.id === img.id ? 'var(--neon)' : '#2a2a2a'}` }}>
-                    <img src={img.url} alt="" style={{ width: 140, height: 140, objectFit: 'cover', display: 'block' }} />
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function Detail({ label, value, style = {} }) {
-  return (
-    <div style={style}>
-      <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: 14 }}>{value}</div>
     </div>
   );
 }

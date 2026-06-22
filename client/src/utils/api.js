@@ -44,6 +44,8 @@ export const api = {
     request('/generate/mascots', { method: 'POST', body: JSON.stringify({ project, references }) }),
   generateBackgrounds: (project, references) =>
     request('/generate/backgrounds', { method: 'POST', body: JSON.stringify({ project, references }) }),
+  generateBadges: (project, references) =>
+    request('/generate/badges', { method: 'POST', body: JSON.stringify({ project, references }) }),
   generateFullBrand: (project, wordmarkUrl, mascotUrl, backgroundUrl) =>
     request('/generate/full-brand', { method: 'POST', body: JSON.stringify({ project, wordmarkUrl, mascotUrl, backgroundUrl }) }),
 };

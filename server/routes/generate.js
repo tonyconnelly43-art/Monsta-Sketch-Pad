@@ -235,4 +235,45 @@ router.post('/full-brand', async (req, res) => {
   }
 });
 
+// POST /api/generate/badges
+router.post('/badges', async (req, res) => {
+  try {
+    const openai = getOpenAI();
+    const { project, references = [] } = req.body;
+    const refNote = references.length > 0 ? `Style references provided — maintain similar aesthetic. ` : '';
+    const prompt = `${refNote}Create a badge or emblem logo for "${project.businessName}", a ${project.industry} company${project.location ? ` in ${project.location}` : ''}.
+Brand personality: ${project.personality || 'professional and trustworthy'}.
+Color palette: ${project.colors || 'bold and strong'}.
+Style: ${project.styleNotes || 'bold emblem, shield or circular badge shape, home service industry'}.
+${project.mustHave ? `Must include: ${project.mustHave}.` : ''}
+${project.mustAvoid ? `Avoid: ${project.mustAvoid}.` : ''}
+${project.promptDescription ? `Additional notes: ${project.promptDescription}.` : ''}
+Design a bold, professional badge or emblem that incorporates the company name and industry imagery. Classic badge or shield shape. White or transparent background. Vector-style illustration, strong outlines, suitable for uniforms, trucks, and marketing materials.`;
+
+    const results = await Promise.all(
+      Array(4).fill(null).map(() =>
+        openai.images.generate({
+          model: 'dall-e-3',
+          prompt,
+          n: 1,
+          size: '1024x1024',
+          quality: 'standard',
+        })
+      )
+    );
+
+    const images = await Promise.all(
+      results.map(async (r) => {
+        const url = await saveGeneratedImage(r.data[0].url);
+        return { id: uuidv4(), url, type: 'badge', createdAt: new Date().toISOString() };
+      })
+    );
+
+    res.json({ images });
+  } catch (err) {
+    console.error('Generate badges error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;
