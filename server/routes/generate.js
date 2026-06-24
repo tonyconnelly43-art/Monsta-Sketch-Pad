@@ -45,45 +45,42 @@ async function saveGeneratedImage(imageUrl) {
   return `/uploads/generated/${filename}`;
 }
 
-function buildWordmarkPrompt(project, references) {
-  const refNote = references.length > 0
-    ? `Style references provided — maintain similar aesthetic to those reference images. `
-    : '';
+function buildWordmarkPrompt(project, references, sketchRules) {
+  const refNote = references.length > 0 ? `Style references provided — maintain similar aesthetic to those reference images. ` : '';
+  const rulesNote = sketchRules ? `\nSTYLE RULES: ${sketchRules}` : '';
   return `${refNote}Create a professional wordmark logo for "${project.businessName}", a ${project.industry} company${project.location ? ` in ${project.location}` : ''}.
 Brand personality: ${project.personality || 'professional and trustworthy'}.
 Color palette: ${project.colors || 'bold and strong'}.
 Style: ${project.styleNotes || 'clean, modern, trades-industry'}.
 ${project.mustHave ? `Must include: ${project.mustHave}.` : ''}
 ${project.mustAvoid ? `Avoid: ${project.mustAvoid}.` : ''}
-${project.promptDescription ? `Additional notes: ${project.promptDescription}.` : ''}
+${project.promptDescription ? `Additional notes: ${project.promptDescription}.` : ''}${rulesNote}
 The wordmark should be text-based, on a transparent or white background, suitable for a home service brand. High quality, vector-style illustration. No taglines or extra elements — just the company name styled as a wordmark.`;
 }
 
-function buildMascotPrompt(project, references) {
-  const refNote = references.length > 0
-    ? `Style references provided — maintain similar aesthetic. `
-    : '';
+function buildMascotPrompt(project, references, sketchRules) {
+  const refNote = references.length > 0 ? `Style references provided — maintain similar aesthetic. ` : '';
+  const rulesNote = sketchRules ? `\nSTYLE RULES: ${sketchRules}` : '';
   return `${refNote}Create a mascot character for "${project.businessName}", a ${project.industry} company${project.location ? ` in ${project.location}` : ''}.
 Brand personality: ${project.personality || 'friendly and professional'}.
 Color palette: ${project.colors || 'bold and strong'}.
 Style: ${project.styleNotes || 'cartoon mascot, bold outlines, home service industry'}.
 ${project.mustHave ? `Must include: ${project.mustHave}.` : ''}
 ${project.mustAvoid ? `Avoid: ${project.mustAvoid}.` : ''}
-${project.promptDescription ? `Additional notes: ${project.promptDescription}.` : ''}
+${project.promptDescription ? `Additional notes: ${project.promptDescription}.` : ''}${rulesNote}
 The mascot should be a fun, memorable character related to the ${project.industry} trade industry. Full body illustration, white or transparent background. Bold cartoon style with strong lines. No text in the image.`;
 }
 
-function buildBackgroundPrompt(project, references) {
-  const refNote = references.length > 0
-    ? `Style references provided — maintain similar aesthetic. `
-    : '';
+function buildBackgroundPrompt(project, references, sketchRules) {
+  const refNote = references.length > 0 ? `Style references provided — maintain similar aesthetic. ` : '';
+  const rulesNote = sketchRules ? `\nSTYLE RULES: ${sketchRules}` : '';
   return `${refNote}Create a brand background pattern or scene for "${project.businessName}", a ${project.industry} company${project.location ? ` in ${project.location}` : ''}.
 Brand personality: ${project.personality || 'professional'}.
 Color palette: ${project.colors || 'bold and strong'}.
 Style: ${project.styleNotes || 'bold, graphic, home service industry'}.
 ${project.mustHave ? `Must include: ${project.mustHave}.` : ''}
 ${project.mustAvoid ? `Avoid: ${project.mustAvoid}.` : ''}
-${project.promptDescription ? `Additional notes: ${project.promptDescription}.` : ''}
+${project.promptDescription ? `Additional notes: ${project.promptDescription}.` : ''}${rulesNote}
 The background should work as a brand backdrop, truck wrap background, or website hero. Bold graphic design style, no text, full bleed composition suitable for branding use.`;
 }
 
@@ -107,8 +104,8 @@ Create a polished brand presentation layout showing the wordmark, mascot, and ba
 router.post('/wordmarks', async (req, res) => {
   try {
     const openai = getOpenAI();
-    const { project, references = [] } = req.body;
-    const prompt = buildWordmarkPrompt(project, references);
+    const { project, references = [], sketchRules = '' } = req.body;
+    const prompt = buildWordmarkPrompt(project, references, sketchRules);
 
     const results = await Promise.all(
       Array(4).fill(null).map(() =>
@@ -140,8 +137,8 @@ router.post('/wordmarks', async (req, res) => {
 router.post('/mascots', async (req, res) => {
   try {
     const openai = getOpenAI();
-    const { project, references = [] } = req.body;
-    const prompt = buildMascotPrompt(project, references);
+    const { project, references = [], sketchRules = '' } = req.body;
+    const prompt = buildMascotPrompt(project, references, sketchRules);
 
     const results = await Promise.all(
       Array(4).fill(null).map(() =>
@@ -173,8 +170,8 @@ router.post('/mascots', async (req, res) => {
 router.post('/backgrounds', async (req, res) => {
   try {
     const openai = getOpenAI();
-    const { project, references = [] } = req.body;
-    const prompt = buildBackgroundPrompt(project, references);
+    const { project, references = [], sketchRules = '' } = req.body;
+    const prompt = buildBackgroundPrompt(project, references, sketchRules);
 
     const results = await Promise.all(
       Array(4).fill(null).map(() =>

@@ -38,14 +38,14 @@ export const api = {
   },
 
   // Generate
-  generateWordmarks: (project, references) =>
-    request('/generate/wordmarks', { method: 'POST', body: JSON.stringify({ project, references }) }),
-  generateMascots: (project, references) =>
-    request('/generate/mascots', { method: 'POST', body: JSON.stringify({ project, references }) }),
-  generateBackgrounds: (project, references) =>
-    request('/generate/backgrounds', { method: 'POST', body: JSON.stringify({ project, references }) }),
-  generateBadges: (project, references) =>
-    request('/generate/badges', { method: 'POST', body: JSON.stringify({ project, references }) }),
+  generateWordmarks: (project, references, sketchRules) =>
+    request('/generate/wordmarks', { method: 'POST', body: JSON.stringify({ project, references, sketchRules }) }),
+  generateMascots: (project, references, sketchRules) =>
+    request('/generate/mascots', { method: 'POST', body: JSON.stringify({ project, references, sketchRules }) }),
+  generateBackgrounds: (project, references, sketchRules) =>
+    request('/generate/backgrounds', { method: 'POST', body: JSON.stringify({ project, references, sketchRules }) }),
+  generateBadges: (project, references, sketchRules) =>
+    request('/generate/badges', { method: 'POST', body: JSON.stringify({ project, references, sketchRules }) }),
   generateFullBrand: (project, wordmarkUrl, mascotUrl, backgroundUrl) =>
     request('/generate/full-brand', { method: 'POST', body: JSON.stringify({ project, wordmarkUrl, mascotUrl, backgroundUrl }) }),
 };
