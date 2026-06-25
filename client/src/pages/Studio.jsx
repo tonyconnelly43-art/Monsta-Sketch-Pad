@@ -96,6 +96,7 @@ export default function Studio() {
   const [mockupBackground, setMockupBackground] = useState(null);
   const [showPickModal, setShowPickModal] = useState(null);
   const [composing, setComposing] = useState(false);
+  const [rulesLocked, setRulesLocked] = useState(true);
 
   // Load all projects on mount
   useEffect(() => {
@@ -128,6 +129,7 @@ export default function Studio() {
     setSelectedRefs([]);
     setSelectedRule(null);
     setSketchRules(project?.sketchRulesMap?.[selectedType] || '');
+    setRulesLocked(true);
     loadRefs(selectedType);
   }, [selectedType]);
 
@@ -339,13 +341,13 @@ export default function Studio() {
           <div style={{ position: 'relative' }}>
             <button
               onClick={() => setShowProjectMenu(v => !v)}
-              style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: 6, padding: '8px 14px', color: '#f0f0f0', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#0f2a38', border: '1px solid #2a2a2a', borderRadius: 6, padding: '8px 14px', color: '#f0f0f0', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
             >
               {project ? project.businessName : 'Select Project'}
               <ChevronDown size={14} />
             </button>
             {showProjectMenu && (
-              <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 4, background: '#111', border: '1px solid #2a2a2a', borderRadius: 8, minWidth: 220, zIndex: 100, overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 4, background: '#071a22', border: '1px solid #2a2a2a', borderRadius: 8, minWidth: 220, zIndex: 100, overflow: 'hidden' }}>
                 {projects.map(p => (
                   <button
                     key={p.id}
@@ -419,10 +421,10 @@ export default function Studio() {
 
           {/* LEFT: References + Rule Profile + Sketch Rules */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-            <div style={{ background: '#0d0d0d', border: '1px solid #1e1e1e', borderRadius: 10, overflow: 'hidden' }}>
+            <div style={{ background: '#0d2330', border: '1px solid #1a3d50', borderRadius: 10, overflow: 'hidden' }}>
 
               {/* References */}
-              <div style={{ padding: '14px 16px', borderBottom: '1px solid #1e1e1e' }}>
+              <div style={{ padding: '14px 16px', borderBottom: '1px solid #1a3d50' }}>
                 <div style={PL}>References</div>
                 <div style={{ display: 'flex', gap: 20, marginBottom: 12 }}>
                   <div>
@@ -441,7 +443,7 @@ export default function Studio() {
               </div>
 
               {/* Rule Profile */}
-              <div style={{ padding: '14px 16px', borderBottom: '1px solid #1e1e1e' }}>
+              <div style={{ padding: '14px 16px', borderBottom: '1px solid #1a3d50' }}>
                 <div style={PL}>Rule Profile</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 5 }}>
                   {ruleProfiles.map(rule => (
@@ -453,7 +455,7 @@ export default function Studio() {
                         textTransform: 'uppercase', letterSpacing: '0.04em', cursor: 'pointer',
                         background: selectedRule === rule.key ? '#cc1a1a' : '#1a1a1a',
                         color: selectedRule === rule.key ? '#fff' : '#888',
-                        border: `1px solid ${selectedRule === rule.key ? '#cc1a1a' : '#2a2a2a'}`,
+                        border: `1px solid ${selectedRule === rule.key ? '#cc1a1a' : '#1a3d50'}`,
                         transition: 'all 0.15s',
                       }}
                     >
@@ -468,7 +470,7 @@ export default function Studio() {
                 )}
 
                 {/* Type selector */}
-                <div style={{ borderTop: '1px solid #1a1a1a', margin: '12px 0' }} />
+                <div style={{ borderTop: '1px solid #1a3d50', margin: '12px 0' }} />
                 <div style={PL}>Type</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 5 }}>
                   {GEN_TYPES.map(t => (
@@ -480,7 +482,7 @@ export default function Studio() {
                         textTransform: 'uppercase', letterSpacing: '0.04em', cursor: 'pointer',
                         background: selectedType === t.value ? 'rgba(57,255,20,0.1)' : '#1a1a1a',
                         color: selectedType === t.value ? 'var(--neon)' : '#888',
-                        border: `1px solid ${selectedType === t.value ? 'rgba(57,255,20,0.4)' : '#2a2a2a'}`,
+                        border: `1px solid ${selectedType === t.value ? 'rgba(57,255,20,0.4)' : '#1a3d50'}`,
                         transition: 'all 0.15s',
                       }}
                     >
@@ -492,18 +494,45 @@ export default function Studio() {
 
               {/* Sketch Rules */}
               <div style={{ padding: '14px 16px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                   <div style={PL}>Sketch Rules</div>
-                  <span style={{ fontSize: 10, color: '#444' }}>saved per project</span>
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    {!rulesLocked && (
+                      <button
+                        onClick={() => { persistSketchRules(selectedType, sketchRules); setRulesLocked(true); toast('Rules saved'); }}
+                        style={{ fontSize: 10, fontWeight: 800, color: '#39ff14', background: 'rgba(57,255,20,0.1)', border: '1px solid rgba(57,255,20,0.3)', borderRadius: 4, padding: '3px 8px', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.06em' }}
+                      >
+                        Save
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setRulesLocked(v => !v)}
+                      title={rulesLocked ? 'Edit rules' : 'Lock rules'}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: rulesLocked ? '#3a6070' : '#cc1a1a', padding: 2, display: 'flex', alignItems: 'center' }}
+                    >
+                      {rulesLocked ? (
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                      ) : (
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
+                      )}
+                    </button>
+                  </div>
                 </div>
-                <div style={{ fontSize: 10, color: '#555', marginBottom: 6 }}>
-                  {selectedRule ? `${ruleProfiles.find(r => r.key === selectedRule)?.label} · ${cfg?.label} stage` : `${cfg?.label} stage`}
+                <div style={{ fontSize: 10, color: '#3a6070', marginBottom: 6 }}>
+                  {selectedRule ? `${ruleProfiles.find(r => r.key === selectedRule)?.label} · ${cfg?.label} stage · saved per project` : `${cfg?.label} stage · saved per project`}
                 </div>
                 <textarea
                   value={sketchRules}
-                  onChange={e => { setSketchRules(e.target.value); persistSketchRules(selectedType, e.target.value); }}
+                  onChange={e => { if (!rulesLocked) { setSketchRules(e.target.value); } }}
+                  readOnly={rulesLocked}
                   placeholder="Select a rule profile above or type custom rules..."
-                  style={{ fontSize: 11, lineHeight: 1.5, minHeight: 160, resize: 'vertical', color: '#aaa' }}
+                  style={{
+                    fontSize: 11, lineHeight: 1.5, minHeight: 160, resize: rulesLocked ? 'none' : 'vertical',
+                    color: rulesLocked ? '#3a6070' : '#ccc',
+                    background: rulesLocked ? 'rgba(7,26,34,0.6)' : undefined,
+                    cursor: rulesLocked ? 'default' : 'text',
+                    borderColor: rulesLocked ? '#1a3d50' : undefined,
+                  }}
                 />
               </div>
             </div>
@@ -513,8 +542,8 @@ export default function Studio() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
             {/* Concept Sheet Generator */}
-            <div style={{ background: '#0d0d0d', border: '1px solid #1e1e1e', borderRadius: 10, overflow: 'hidden' }}>
-              <div style={{ padding: '14px 20px', borderBottom: '1px solid #1e1e1e', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ background: '#0d2330', border: '1px solid #1a3d50', borderRadius: 10, overflow: 'hidden' }}>
+              <div style={{ padding: '14px 20px', borderBottom: '1px solid #1a3d50', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <div style={{ fontWeight: 900, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Concept Sheet Generator</div>
                   <div style={{ color: '#555', fontSize: 11, marginTop: 2 }}>Creates one clean concept sheet with the active profile rules.</div>
@@ -536,11 +565,11 @@ export default function Studio() {
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
-                <div style={{ padding: '12px 20px', borderRight: '1px solid #1e1e1e', borderBottom: '1px solid #1e1e1e' }}>
+                <div style={{ padding: '12px 20px', borderRight: '1px solid #1e1e1e', borderBottom: '1px solid #1a3d50' }}>
                   <div style={PL}>Subject</div>
                   <input value={subject} onChange={e => setSubject(e.target.value)} placeholder="e.g. bold eagle vector mascot" style={{ fontSize: 13 }} />
                 </div>
-                <div style={{ padding: '12px 20px', borderBottom: '1px solid #1e1e1e' }}>
+                <div style={{ padding: '12px 20px', borderBottom: '1px solid #1a3d50' }}>
                   <div style={PL}>Audience</div>
                   <input value={audience} onChange={e => setAudience(e.target.value)} placeholder="e.g. confident, premium, trades-focused" style={{ fontSize: 13 }} />
                 </div>
@@ -565,7 +594,7 @@ export default function Studio() {
               ) : (
                 <>
                   {(displayImage || generating) && (
-                    <div style={{ background: '#111', position: 'relative' }}>
+                    <div style={{ background: '#071a22', position: 'relative' }}>
                       {generating && !displayImage ? (
                         <div style={{ height: 420, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
                           <span className="loading-spinner" style={{ width: 40, height: 40 }} />
@@ -591,7 +620,7 @@ export default function Studio() {
                   )}
 
                   {images.length > 0 && (
-                    <div style={{ borderTop: '1px solid #1a1a1a', padding: 12, display: 'flex', gap: 10, overflowX: 'auto' }}>
+                    <div style={{ borderTop: '1px solid #1a3d50', padding: 12, display: 'flex', gap: 10, overflowX: 'auto' }}>
                       {images.map(img => {
                         const isFocused = displayImage?.id === img.id;
                         const isFav = currentFav?.id === img.id;
@@ -613,7 +642,7 @@ export default function Studio() {
                         );
                       })}
                       {generating && Array(4).fill(null).map((_, i) => (
-                        <div key={`loading-${i}`} style={{ flex: '0 0 80px', height: 80, borderRadius: 6, border: '2px solid #222', background: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div key={`loading-${i}`} style={{ flex: '0 0 80px', height: 80, borderRadius: 6, border: '2px solid #222', background: '#071a22', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           <span className="loading-spinner" style={{ width: 20, height: 20 }} />
                         </div>
                       ))}
@@ -621,7 +650,7 @@ export default function Studio() {
                   )}
 
                   {displayImage && (
-                    <div style={{ padding: '10px 16px', borderTop: '1px solid #1a1a1a' }}>
+                    <div style={{ padding: '10px 16px', borderTop: '1px solid #1a3d50' }}>
                       <div style={{ fontWeight: 700, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                         {cfg?.label?.toUpperCase()} · {selectedRule ? ruleProfiles.find(r => r.key === selectedRule)?.label : 'Custom'} SHEET
                       </div>
@@ -635,8 +664,8 @@ export default function Studio() {
             </div>
 
             {/* Mockup Lab */}
-            <div style={{ background: '#0d0d0d', border: '1px solid #1e1e1e', borderRadius: 10, overflow: 'hidden' }}>
-              <div style={{ padding: '14px 20px', borderBottom: '1px solid #1e1e1e', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ background: '#0d2330', border: '1px solid #1a3d50', borderRadius: 10, overflow: 'hidden' }}>
+              <div style={{ padding: '14px 20px', borderBottom: '1px solid #1a3d50', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <Layers size={14} color="#cc1a1a" />
                   <span style={{ fontWeight: 900, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Mockup Lab</span>
@@ -659,7 +688,7 @@ export default function Studio() {
                       <div style={{ fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#cc1a1a' }}>{slot.label}</div>
                       <div style={{ fontSize: 10, color: '#444', marginTop: 1 }}>{slot.sub}</div>
                     </div>
-                    <div style={{ aspectRatio: '1', background: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                    <div style={{ aspectRatio: '1', background: '#071a22', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
                       {slot.state ? (
                         <>
                           <img src={slot.state.url} alt={slot.label} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
@@ -671,8 +700,8 @@ export default function Studio() {
                         <span style={{ color: '#2a2a2a', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Empty</span>
                       )}
                     </div>
-                    <div style={{ display: 'flex', borderTop: '1px solid #1a1a1a' }}>
-                      <button onClick={() => setShowPickModal(slot.key)} style={{ flex: 1, padding: '9px', background: 'transparent', border: 'none', borderRight: '1px solid #1a1a1a', color: '#666', fontSize: 11, fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Pick</button>
+                    <div style={{ display: 'flex', borderTop: '1px solid #1a3d50' }}>
+                      <button onClick={() => setShowPickModal(slot.key)} style={{ flex: 1, padding: '9px', background: 'transparent', border: 'none', borderRight: '1px solid #1a3d50', color: '#666', fontSize: 11, fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Pick</button>
                       <input type="file" accept="image/*" ref={slot.ref} style={{ display: 'none' }} onChange={e => handleMockupUpload(e, slot.key)} />
                       <button onClick={() => slot.ref.current?.click()} style={{ flex: 1, padding: '9px', background: 'transparent', border: 'none', color: '#666', fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                         <Upload size={11} /> Upload
@@ -683,13 +712,13 @@ export default function Studio() {
               </div>
 
               {!mockupReady && (
-                <div style={{ padding: '10px 16px', borderTop: '1px solid #1a1a1a' }}>
+                <div style={{ padding: '10px 16px', borderTop: '1px solid #1a3d50' }}>
                   <p style={{ color: '#444', fontSize: 11 }}>Pick at least one of mascot, logo, or background to start composing.</p>
                 </div>
               )}
 
               {project.fullBrands?.length > 0 && (
-                <div style={{ padding: 16, borderTop: '1px solid #1a1a1a' }}>
+                <div style={{ padding: 16, borderTop: '1px solid #1a3d50' }}>
                   <div style={{ fontSize: 10, fontWeight: 700, color: '#555', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Full Brand Compositions</div>
                   <div style={{ display: 'flex', gap: 10, overflowX: 'auto' }}>
                     {project.fullBrands.map(img => (
@@ -705,8 +734,8 @@ export default function Studio() {
           </div>
 
           {/* RIGHT: Reference Pull */}
-          <div style={{ background: '#0d0d0d', border: '1px solid #1e1e1e', borderRadius: 10, overflow: 'hidden' }}>
-            <div style={{ padding: '14px 16px', borderBottom: '1px solid #1e1e1e', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ background: '#0d2330', border: '1px solid #1a3d50', borderRadius: 10, overflow: 'hidden' }}>
+            <div style={{ padding: '14px 16px', borderBottom: '1px solid #1a3d50', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <div style={{ width: 8, height: 8, background: '#cc1a1a', borderRadius: '50%' }} />
@@ -742,7 +771,7 @@ export default function Studio() {
                       }}
                     >
                       <img src={ref.url} alt={ref.name} style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', display: 'block' }} />
-                      <div style={{ padding: '6px 10px', background: '#111' }}>
+                      <div style={{ padding: '6px 10px', background: '#071a22' }}>
                         <div style={{ fontSize: 11, fontWeight: 700, color: isSelected ? 'var(--neon)' : '#888', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ref.name}</div>
                         <div style={{ fontSize: 10, color: '#cc1a1a', marginTop: 1, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 }}>General Style</div>
                       </div>

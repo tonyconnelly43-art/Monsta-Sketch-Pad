@@ -2,13 +2,16 @@
   --neon: #39ff14;
   --neon-dim: #2bc110;
   --neon-glow: rgba(57, 255, 20, 0.25);
-  --bg: #0a0a0a;
-  --bg-card: #111111;
-  --bg-card2: #1a1a1a;
-  --bg-border: #2a2a2a;
+  --bg: #071a22;
+  --bg-card: #0d2330;
+  --bg-card2: #0f2a38;
+  --bg-border: #1a3d50;
   --text: #f0f0f0;
-  --text-muted: #888;
+  --text-muted: #7a9aaa;
   --danger: #ff4444;
+  --teal: #0d2d3a;
+  --teal-mid: #1a4455;
+  --teal-light: #1e5268;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }

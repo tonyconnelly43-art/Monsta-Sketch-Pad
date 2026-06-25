@@ -5,8 +5,8 @@
 
 .sidebar {
   width: 240px;
-  background: #0d0d0d;
-  border-right: 1px solid #1e1e1e;
+  background: #071a22;
+  border-right: 1px solid #1a3d50;
   display: flex;
   flex-direction: column;
   position: fixed;
@@ -21,7 +21,7 @@
   align-items: center;
   justify-content: center;
   padding: 20px 16px;
-  border-bottom: 1px solid #1e1e1e;
+  border-bottom: 1px solid #1a3d50;
 }
 
 .logo-wordmark {
@@ -63,7 +63,7 @@
   gap: 10px;
   padding: 10px 12px;
   border-radius: 8px;
-  color: #888;
+  color: #7a9aaa;
   font-size: 14px;
   font-weight: 500;
   transition: all 0.15s;
@@ -72,7 +72,7 @@
 
 .nav-item:hover {
   color: #f0f0f0;
-  background: #1a1a1a;
+  background: #0f2a38;
 }
 
 .nav-item.active {
@@ -82,7 +82,7 @@
 
 .sidebar-footer {
   padding: 16px 20px;
-  border-top: 1px solid #1e1e1e;
+  border-top: 1px solid #1a3d50;
 }
 
 .api-status {
@@ -90,7 +90,7 @@
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  color: #666;
+  color: #7a9aaa;
 }
 
 .api-dot {
